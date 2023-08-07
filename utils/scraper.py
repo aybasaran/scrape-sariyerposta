@@ -1,6 +1,6 @@
 import requests
-from bs4 import BeautifulSoup
-from exceptions.couldnotscrape import CouldNotScrape
+from bs4 import BeautifulSoup, ResultSet
+from exceptions.scraping import CouldNotScrape
 
 
 class HtmlScraper:

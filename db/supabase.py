@@ -1,6 +1,7 @@
 import os
 
 from supabase_py import Client, create_client
+from exceptions.db import CouldNotConnectDB
 
 
 class Supabase:
@@ -18,4 +19,4 @@ class Supabase:
             supabase: Client = create_client(url, key)
             self.client = supabase
         except Exception as e:
-            raise Exception("Error while connecting to Supabase")
+            raise CouldNotConnectDB()

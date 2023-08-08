@@ -1,17 +1,17 @@
 import os
 
-from supabase_py import Client, create_client
+from supabase import Client, create_client
 from exceptions.db import CouldNotConnectDB
+
+import requests
+from PIL import Image
+from io import BytesIO
 
 
 class Supabase:
     client: Client = None
 
-    # init
-    def __init__(self) -> None:
-        self.connect()
-
-    def connect(self):
+    def connect(self) -> None:
         try:
             url: str = os.environ.get("SUPABASE_URL")
             key: str = os.environ.get("SUPABASE_KEY")
@@ -20,3 +20,34 @@ class Supabase:
             self.client = supabase
         except Exception as e:
             raise CouldNotConnectDB()
+
+    def saveNews(self, news: dict) -> None:
+        pass
+
+    def uploadImage(self, image: str) -> str:
+        img_name = image.split("/")[-1].split(".")[0]
+
+        r = requests.get(image, stream=True)
+
+        if r.status_code != 200:
+            raise Exception("Could not download image")
+
+        # Convert image to webp
+        img = Image.open(BytesIO(r.content))
+        b = BytesIO()
+        img.save(b, format="webp", optimize=True)
+
+        response = self.client.storage.from_("sariyervehaber").upload(
+            "images" + "/" + img_name + ".webp", b.getvalue(), {"content-type": "image/webp"}
+        )
+
+        if response.status_code == 200:
+            public_url = (
+                "https://bohpjlknwqcehwlistzx.supabase.co/storage/v1/object/public/sariyervehaber/images/"
+                + img_name
+                + ".webp"
+            )
+
+            return public_url
+
+        return None

@@ -1,45 +1,14 @@
-# Remove asset urls from sitemap
 from bs4 import PageElement
+from datetime import datetime
 
-mainPages = [
-    "/sariyer-haberleri",
-    "/ekonomi",
-    "/yasam",
-    "/siyaset",
-    "/roportaj",
-    "/emlak",
-    "/aktuel",
-    "/alt-mansetler",
-    "/saglik",
-    "/kose-yazilari-arsiv",
-    "/kose-yazilari",
-    "/kultur-sanat",
-    "/teknoloji",
-    "/spor",
-    "/egitim",
-    "/foto-galeri",
-    "/guncel-haberler",
-    "/magazin",
-    "/turkiye-ve-dunya-gundemi ",
-    "/video-galeri",
-    "/son-dakika-haberi",
-    "/gundem",
-    "/sektor",
-]
+from utils.consts import mainPages, unWantedExtensions
 
 
 def removeAssetUrlsFromSitemap(sitemapUrlElemet: PageElement):
-    if (
-        sitemapUrlElemet.text.endswith(".png")
-        or sitemapUrlElemet.text.endswith(".jpg")
-        or sitemapUrlElemet.text.endswith(".jpeg")
-        or sitemapUrlElemet.text.endswith(".webp")
-        or sitemapUrlElemet.text.endswith(".JPG")
-        or sitemapUrlElemet.text.endswith(".PNG")
-        or sitemapUrlElemet.text.endswith(".JPEG")
-        or sitemapUrlElemet.text.endswith(".WEBP")
-    ):
-        return False
+    # check if url is in unwanted extensions
+    for extension in unWantedExtensions:
+        if extension in sitemapUrlElemet.text:
+            return False
     return True
 
 
@@ -49,3 +18,7 @@ def removeMainPagesFromSitemap(sitemapUrlElemet: PageElement):
         if mainPage in sitemapUrlElemet.text:
             return False
     return True
+
+
+def convertScrapedDatetimeTextToDatetime(scrapedDatetimeText: str):
+    return datetime.strptime(scrapedDatetimeText, "%d.%m.%Y %H:%M").strftime("%Y-%m-%d %H:%M:%S")

@@ -4,9 +4,13 @@ from postgrest.exceptions import APIError
 from slugify import slugify
 from storage3.utils import StorageException
 
-from config.config import Config
 from db.supabase import Supabase
-from utils.helpers import convertScrapedDatetimeTextToDatetime, removeAssetUrlsFromSitemap, removeMainPagesFromSitemap
+from utils.helpers import (
+    convertScrapedDatetimeTextToDatetime,
+    dontLetFourSlashToBeInUrl,
+    removeAssetUrlsFromSitemap,
+    removeMainPagesFromSitemap,
+)
 from utils.logger import Logger
 from utils.scraper import HtmlScraper, XMLScraper
 from utils.types import LogType
@@ -18,9 +22,8 @@ class SariyerPostaScraper:
     domain = "https://www.sariyerposta.com"
     supabase: Supabase = None
 
-    def __init__(self, supabase: Supabase, config: Config) -> None:
+    def __init__(self, supabase: Supabase) -> None:
         self.supabase = supabase
-        self.config = config
 
     def getNewsDetails(self, url: str):
         if not url.startswith(self.domain):
@@ -71,12 +74,15 @@ class SariyerPostaScraper:
             doc = XMLScraper(sitemap).scrape()
             for j, loc in enumerate(
                 filter(
-                    removeMainPagesFromSitemap,
+                    dontLetFourSlashToBeInUrl,
                     filter(
-                        removeAssetUrlsFromSitemap,
-                        doc.findAll("loc"),
+                        removeMainPagesFromSitemap,
+                        filter(
+                            removeAssetUrlsFromSitemap,
+                            doc.findAll("loc"),
+                        ),
                     ),
-                )
+                ),
             ):
                 # Last Month's Urls includes main page so we need to skip it
                 if i == 0 and j == 0:
@@ -94,19 +100,20 @@ class SariyerPostaScraper:
         print(f"News {news['title']} saved to database.")
 
     def startScraping(self):
-        logger.log(LogType.INFO, "Scraping started...")
+        logger.log(LogType.WARNING, "Scraping started...")
         newsUrls = self.getMonthlyNews()
+
         for url in newsUrls:
             try:
+                logger.log(LogType.INFO, f"Scraping {url}...")
                 news = self.getNewsDetails(url)
                 self.supabase.saveNews(news)
                 logger.log(LogType.SUCCESS, f"News {news['title']} saved to database.")
-                logger.log(LogType.INFO, "Process will continue in 1 seconds...")
-                time.sleep(1)
                 break
             except Exception as e:
                 if isinstance(e, StorageException) or isinstance(e, APIError):
                     logger.log(LogType.ERROR, f"News {news['title']} already exists in database.")
                     continue
             finally:
-                logger.log(LogType.INFO, "Scraping finished.")
+                logger.log(LogType.WARNING, "Process will continue in 1 seconds...")
+                time.sleep(1)

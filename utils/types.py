@@ -25,6 +25,6 @@ class News(TypedDict):
 
 class LogType(Enum):
     ERROR = "error"
-    INFO = "info"
     WARNING = "warning"
     SUCCESS = "success"
+    INFO = "info"

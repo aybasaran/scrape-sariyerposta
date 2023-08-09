@@ -1,8 +1,8 @@
+import os
 import time
 
 from postgrest.exceptions import APIError
 from slugify import slugify
-from storage3.utils import StorageException
 
 from db.supabase import Supabase
 from utils.helpers import (
@@ -25,7 +25,7 @@ class SariyerPostaScraper:
     def __init__(self, supabase: Supabase) -> None:
         self.supabase = supabase
 
-    def getNewsDetails(self, url: str):
+    def getPostDetails(self, url: str):
         if not url.startswith(self.domain):
             url = f"{self.domain}/{url}"
 
@@ -34,7 +34,7 @@ class SariyerPostaScraper:
         postHeader = doc.find("div", {"class": "post-header"})
         postTitle = postHeader.find("h1").text
         postDescription = postHeader.find("h2").text
-        postSubject = postHeader.find("div", {"class": "meta-category"}).findAll("a")[1].attrs["href"].replace("/", "")
+        postCategory = postHeader.find("div", {"class": "meta-category"}).findAll("a")[1].attrs["href"].replace("/", "")
         postPublishDate = postHeader.findAll("div", {"class": "box"})[0].findAll("span")[0].text
         postBodyElement = doc.find("div", {"class": "article-text"})
         postImage = doc.find("div", {"class": "news-section"}).findAll("img")[0].attrs["src"]
@@ -56,8 +56,8 @@ class SariyerPostaScraper:
             "title": postTitle,
             "slug": slugify(postTitle),
             "description": postDescription,
-            "subject": postSubject,
-            "publish_date": convertScrapedDatetimeTextToDatetime(postPublishDate),
+            "category": postCategory,
+            "created_at": convertScrapedDatetimeTextToDatetime(postPublishDate),
             "image": postImage,
             "content": postContent,
         }
@@ -66,8 +66,8 @@ class SariyerPostaScraper:
         doc = XMLScraper(f"{self.domain}/sitemap.xml").scrape()
         return [loc.text for loc in doc.findAll("loc")[1:]]
 
-    def getMonthlyNews(self):
-        newsUrls = []
+    def getMonthlyPosts(self):
+        postUrls = []
         monthlySitemapList = self.getMontlySitemap()
 
         for i, sitemap in enumerate(monthlySitemapList):
@@ -87,33 +87,36 @@ class SariyerPostaScraper:
                 # Last Month's Urls includes main page so we need to skip it
                 if i == 0 and j == 0:
                     continue
-                newsUrls.append(loc.text)
+                postUrls.append(loc.text)
 
-        return newsUrls
+        return postUrls
 
     def scrapeAndSaveSingleNews(self, url: str):
         if not url.startswith(self.domain):
             url = f"{self.domain}/{url}"
 
-        news = self.getNewsDetails(url)
-        self.supabase.saveNews(news)
-        print(f"News {news['title']} saved to database.")
+        post = self.getNewsDetails(url)
+        self.supabase.saveNews(post)
+        print(f"News {post['title']} saved to database.")
 
     def startScraping(self):
         logger.log(LogType.WARNING, "Scraping started...")
-        newsUrls = self.getMonthlyNews()
+        postUrls = self.getMonthlyPosts()
 
-        for url in newsUrls:
+        for url in postUrls:
             try:
                 logger.log(LogType.INFO, f"Scraping {url}...")
-                news = self.getNewsDetails(url)
-                self.supabase.saveNews(news)
-                logger.log(LogType.SUCCESS, f"News {news['title']} saved to database.")
-                break
+                post = self.getPostDetails(url)
+                self.supabase.saveNews(post)
+                logger.log(LogType.SUCCESS, f"Post {post['title']} saved to database.")
             except Exception as e:
-                if isinstance(e, StorageException) or isinstance(e, APIError):
-                    logger.log(LogType.ERROR, f"News {news['title']} already exists in database.")
-                    continue
+                if isinstance(e, APIError):
+                    if e.args[0].error == "Duplicate":
+                        logger.log(LogType.WARNING, "Post already exists in database.")
+                        continue
+
+                logger.log(LogType.ERROR, f"Process stopped because of {e}")
+                os._exit(1)
             finally:
                 logger.log(LogType.WARNING, "Process will continue in 1 seconds...")
                 time.sleep(1)

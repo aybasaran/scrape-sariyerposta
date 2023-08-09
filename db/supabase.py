@@ -28,7 +28,7 @@ class Supabase:
 
     def saveNewsPaperHeadline(self, headline: NewsPaperHeadLine) -> None:
         # First Upload Images to Supabase Storage
-        headline["image"] = self.uploadImage(headline["image"], folder="headlines")
+        headline["image"] = self.uploadImage(headline["image"], folder="headline")
 
         self.client.table("headline").insert(
             {
@@ -38,25 +38,25 @@ class Supabase:
             }
         ).execute()
 
-    def saveNews(self, news: dict) -> None:
+    def saveNews(self, post: dict) -> None:
         # Upload Main Image to Supabase Storage
-        image = self.uploadImage(news["image"], folder="news")
+        image = self.uploadImage(post["image"], folder="post")
 
         # Upload Content images to Supabase Storage
-        for content in news["content"]:
+        for content in post["content"]:
             if content["type"] == "image":
-                content["body"] = self.uploadImage(content["body"], folder="news")
+                content["body"] = self.uploadImage(content["body"], folder="post")
 
-        self.client.table("news").insert(
+        self.client.table("post").insert(
             {
-                "title": news["title"],
-                "slug": news["slug"],
-                "description": news["description"],
-                "created_at": news["publish_date"],
+                "title": post["title"],
+                "slug": post["slug"],
+                "description": post["description"],
+                "created_at": post["publish_date"],
                 "image": image,
-                "category": news["subject"],
+                "category": post["subject"],
                 # python dict to json
-                "content": news["content"],
+                "content": post["content"],
             }
         ).execute()
 

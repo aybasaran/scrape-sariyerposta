@@ -8,19 +8,19 @@ class NewsPaperHeadLine(TypedDict):
     created_at: str
 
 
-class NewsContent(TypedDict):
+class PostContent(TypedDict):
     type: str
     body: str
 
 
-class News(TypedDict):
+class Post(TypedDict):
     title: str
     slug: str
     description: str
-    publish_date: str
+    created_at: str
     image: str
-    subject: str
-    content: List[NewsContent]
+    category: str
+    content: List[PostContent]
 
 
 class LogType(Enum):

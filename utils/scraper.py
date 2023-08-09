@@ -1,5 +1,5 @@
 import requests
-from bs4 import BeautifulSoup, ResultSet
+from bs4 import BeautifulSoup
 from exceptions.scraping import CouldNotScrape
 
 

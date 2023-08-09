@@ -81,6 +81,14 @@ class SariyerPostaScraper:
 
         return newsUrls
 
+    def scrapeAndSaveSingleNews(self, url: str):
+        if not url.startswith(self.domain):
+            url = f"{self.domain}/{url}"
+
+        news = self.getNewsDetails(url)
+        self.supabase.saveNews(news)
+        print(f"News {news['title']} saved to database.")
+
     def startScraping(self):
         print("Scraping started...")
         newsUrls = self.getMonthlyNews()
@@ -89,8 +97,8 @@ class SariyerPostaScraper:
                 news = self.getNewsDetails(url)
                 self.supabase.saveNews(news)
                 print(f"News {news['title']} saved to database.")
-                print("Process will continue in 5 seconds...")
-                time.sleep(5)
+                print("Process will continue in 1 seconds...")
+                time.sleep(1)
             except Exception as e:
                 if isinstance(e, StorageException) or isinstance(e, APIError):
                     print(f"News {news['title']} already exists in database.")

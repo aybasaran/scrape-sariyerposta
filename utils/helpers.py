@@ -21,4 +21,4 @@ def removeMainPagesFromSitemap(sitemapUrlElemet: PageElement):
 
 
 def convertScrapedDatetimeTextToDatetime(scrapedDatetimeText: str):
-    return datetime.strptime(scrapedDatetimeText, "%d.%m.%Y - %H:%M").strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.strptime(scrapedDatetimeText, "%d.%m.%Y - %H:%M").strftime("%d.%m.%Y %H:%M:%S")

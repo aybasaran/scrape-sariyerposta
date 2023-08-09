@@ -9,6 +9,9 @@ class Config:
     SUPABASE_KEY = ""
     SUPABASE_BUCKET = ""
 
+    def __init__(self) -> None:
+        self.load()
+
     def load(self) -> None:
         try:
             load_dotenv()

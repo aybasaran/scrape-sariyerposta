@@ -1,35 +1,51 @@
-import os
-
-from supabase import Client, create_client
-from exceptions.db import CouldNotConnectDB
+from io import BytesIO
 
 import requests
 from PIL import Image
-from io import BytesIO
-import json
+from supabase import Client, create_client
+
+from config.config import Config
+from exceptions.db import CouldNotConnectDB
+
+from utils.types import NewsPaperHeadLine
+from typing import List
 
 
 class Supabase:
     client: Client = None
+    config: Config = None
+
+    def __init__(self, config: Config) -> None:
+        self.config = config
+        self.connect()
 
     def connect(self) -> None:
         try:
-            url: str = os.environ.get("SUPABASE_URL")
-            key: str = os.environ.get("SUPABASE_KEY")
-
-            supabase: Client = create_client(url, key)
+            supabase: Client = create_client(self.config.SUPABASE_URL, self.config.SUPABASE_KEY)
             self.client = supabase
         except Exception as e:
             raise CouldNotConnectDB()
 
+    def saveNewsPaperHeadline(self, headline: NewsPaperHeadLine) -> None:
+        # First Upload Images to Supabase Storage
+        headline["image"] = self.uploadImage(headline["image"], folder="headlines")
+
+        self.client.table("headline").insert(
+            {
+                "newspaper_name": headline["newspaper_name"],
+                "image": headline["image"],
+                "created_at": headline["created_at"],
+            }
+        ).execute()
+
     def saveNews(self, news: dict) -> None:
         # Upload Main Image to Supabase Storage
-        image = self.uploadImage(news["image"])
+        image = self.uploadImage(news["image"], folder="images")
 
         # Upload Content images to Supabase Storage
         for content in news["content"]:
             if content["type"] == "image":
-                content["body"] = self.uploadImage(content["body"])
+                content["body"] = self.uploadImage(content["body"], folder="images")
 
         self.client.table("news").insert(
             {
@@ -44,7 +60,7 @@ class Supabase:
             }
         ).execute()
 
-    def uploadImage(self, image: str) -> str:
+    def uploadImage(self, image: str, folder: str) -> str:
         img_name = image.split("/")[-1].split(".")[0]
 
         r = requests.get(image, stream=True)
@@ -57,13 +73,13 @@ class Supabase:
         b = BytesIO()
         img.save(b, format="webp", optimize=True)
 
-        response = self.client.storage.from_("sariyervehaber").upload(
-            "images" + "/" + img_name + ".webp", b.getvalue(), {"content-type": "image/webp"}
+        response = self.client.storage.from_(self.config.SUPABASE_BUCKET).upload(
+            folder + "/" + img_name + ".webp", b.getvalue(), {"content-type": "image/webp"}
         )
 
         if response.status_code == 200:
             public_url = (
-                "https://bohpjlknwqcehwlistzx.supabase.co/storage/v1/object/public/sariyervehaber/images/"
+                f"{self.config.SUPABASE_URL}/storage/v1/object/public/{self.config.SUPABASE_BUCKET}/{folder}/"
                 + img_name
                 + ".webp"
             )

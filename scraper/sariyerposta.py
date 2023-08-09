@@ -1,11 +1,10 @@
-import os
 import time
-from datetime import datetime
 
 from slugify import slugify
-from storage3.utils import StorageException
 from postgrest.exceptions import APIError
+from storage3.utils import StorageException
 
+from config.config import Config
 from db.supabase import Supabase
 from utils.helpers import convertScrapedDatetimeTextToDatetime, removeAssetUrlsFromSitemap, removeMainPagesFromSitemap
 from utils.scraper import HtmlScraper, XMLScraper
@@ -15,9 +14,9 @@ class SariyerPostaScraper:
     domain = "https://www.sariyerposta.com"
     supabase: Supabase = None
 
-    def __init__(self, supabase: Supabase) -> None:
+    def __init__(self, supabase: Supabase, config: Config) -> None:
         self.supabase = supabase
-        self.supabase.connect()
+        self.config = config
 
     def getNewsDetails(self, url: str):
         if not url.startswith(self.domain):
@@ -96,3 +95,5 @@ class SariyerPostaScraper:
                 if isinstance(e, StorageException) or isinstance(e, APIError):
                     print(f"News {news['title']} already exists in database.")
                     continue
+            finally:
+                print("Scraping finished.")

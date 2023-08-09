@@ -6,6 +6,7 @@ from exceptions.db import CouldNotConnectDB
 import requests
 from PIL import Image
 from io import BytesIO
+import json
 
 
 class Supabase:
@@ -22,7 +23,26 @@ class Supabase:
             raise CouldNotConnectDB()
 
     def saveNews(self, news: dict) -> None:
-        pass
+        # Upload Main Image to Supabase Storage
+        image = self.uploadImage(news["image"])
+
+        # Upload Content images to Supabase Storage
+        for content in news["content"]:
+            if content["type"] == "image":
+                content["body"] = self.uploadImage(content["body"])
+
+        self.client.table("news").insert(
+            {
+                "title": news["title"],
+                "slug": news["slug"],
+                "description": news["description"],
+                "created_at": news["publish_date"],
+                "image": image,
+                "category": news["subject"],
+                # python dict to json
+                "content": news["content"],
+            }
+        ).execute()
 
     def uploadImage(self, image: str) -> str:
         img_name = image.split("/")[-1].split(".")[0]

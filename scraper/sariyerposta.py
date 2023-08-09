@@ -1,9 +1,13 @@
+import os
+import time
 from datetime import datetime
 
 from slugify import slugify
+from storage3.utils import StorageException
+from postgrest.exceptions import APIError
 
 from db.supabase import Supabase
-from utils.helpers import removeAssetUrlsFromSitemap, removeMainPagesFromSitemap
+from utils.helpers import convertScrapedDatetimeTextToDatetime, removeAssetUrlsFromSitemap, removeMainPagesFromSitemap
 from utils.scraper import HtmlScraper, XMLScraper
 
 
@@ -32,7 +36,7 @@ class SariyerPostaScraper:
         postContent = []
 
         for tag in postBodyElement.find_all(["p", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6"]):
-            if tag.name == "p" and tag.text != "" and len(tag.text) > 10:
+            if tag.name == "p":
                 if tag.find("img"):
                     postContent.append({"type": "image", "body": tag.find("img").attrs["src"]})
                 else:
@@ -47,7 +51,7 @@ class SariyerPostaScraper:
             "slug": slugify(postTitle),
             "description": postDescription,
             "subject": postSubject,
-            "publish_date": postPublishDate,
+            "publish_date": convertScrapedDatetimeTextToDatetime(postPublishDate),
             "image": postImage,
             "content": postContent,
         }
@@ -79,8 +83,16 @@ class SariyerPostaScraper:
         return newsUrls
 
     def startScraping(self):
+        print("Scraping started...")
         newsUrls = self.getMonthlyNews()
         for url in newsUrls:
-            news = self.getNewsDetails(url)
-            self.supabase.saveNews(news)
-            break
+            try:
+                news = self.getNewsDetails(url)
+                self.supabase.saveNews(news)
+                print(f"News {news['title']} saved to database.")
+                print("Process will continue in 5 seconds...")
+                time.sleep(5)
+            except Exception as e:
+                if isinstance(e, StorageException) or isinstance(e, APIError):
+                    print(f"News {news['title']} already exists in database.")
+                    continue

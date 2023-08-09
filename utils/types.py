@@ -1,4 +1,5 @@
 from typing import TypedDict, List
+from enum import Enum
 
 
 class NewsPaperHeadLine(TypedDict):
@@ -20,3 +21,10 @@ class News(TypedDict):
     image: str
     subject: str
     content: List[NewsContent]
+
+
+class LogType(Enum):
+    ERROR = "error"
+    INFO = "info"
+    WARNING = "warning"
+    SUCCESS = "success"

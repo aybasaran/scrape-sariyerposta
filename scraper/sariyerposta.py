@@ -1,13 +1,17 @@
 import time
 
-from slugify import slugify
 from postgrest.exceptions import APIError
+from slugify import slugify
 from storage3.utils import StorageException
 
 from config.config import Config
 from db.supabase import Supabase
 from utils.helpers import convertScrapedDatetimeTextToDatetime, removeAssetUrlsFromSitemap, removeMainPagesFromSitemap
+from utils.logger import Logger
 from utils.scraper import HtmlScraper, XMLScraper
+from utils.types import LogType
+
+logger = Logger()
 
 
 class SariyerPostaScraper:
@@ -90,18 +94,19 @@ class SariyerPostaScraper:
         print(f"News {news['title']} saved to database.")
 
     def startScraping(self):
-        print("Scraping started...")
+        logger.log(LogType.INFO, "Scraping started...")
         newsUrls = self.getMonthlyNews()
         for url in newsUrls:
             try:
                 news = self.getNewsDetails(url)
                 self.supabase.saveNews(news)
-                print(f"News {news['title']} saved to database.")
-                print("Process will continue in 1 seconds...")
+                logger.log(LogType.SUCCESS, f"News {news['title']} saved to database.")
+                logger.log(LogType.INFO, "Process will continue in 1 seconds...")
                 time.sleep(1)
+                break
             except Exception as e:
                 if isinstance(e, StorageException) or isinstance(e, APIError):
-                    print(f"News {news['title']} already exists in database.")
+                    logger.log(LogType.ERROR, f"News {news['title']} already exists in database.")
                     continue
             finally:
-                print("Scraping finished.")
+                logger.log(LogType.INFO, "Scraping finished.")

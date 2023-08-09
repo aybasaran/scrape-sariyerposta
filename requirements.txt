@@ -1,6 +1,9 @@
 beautifulsoup4==4.12.2
 black==23.7.0
+colorama==0.4.6
+lxml==4.9.3
+Pillow==10.0.0
+python-dotenv==1.0.0
 python-slugify==8.0.1
 requests==2.31.0
 supabase==1.0.4
-lxml==4.9.3

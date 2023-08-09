@@ -9,5 +9,8 @@ if __name__ == "__main__":
     config = Config()
     supabase = Supabase(config)
 
-    scraper = SariyerPostaScraper(supabase)
-    scraper.startScraping()
+    newsPaperScraper = NewsPaperScraper(supabase)
+    newsPaperScraper.startScraping()
+
+    websiteScraper = SariyerPostaScraper(supabase)
+    websiteScraper.startScraping()

@@ -14,11 +14,9 @@ from utils.types import NewsPaperHeadLine
 class NewsPaperScraper:
     domain: str = "https://www.cumhuriyet.com.tr"
     supabase: Supabase = None
-    config: Config = None
 
-    def __init__(self, supabase: Supabase, config: Config) -> None:
+    def __init__(self, supabase: Supabase) -> None:
         self.supabase = supabase
-        self.config = config
 
     def getNewsPaperHeadlines(self) -> List[NewsPaperHeadLine]:
         headLines: List[NewsPaperHeadLine] = []

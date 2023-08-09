@@ -48,7 +48,7 @@ class NewsPaperScraper:
             try:
                 self.supabase.saveNewsPaperHeadline(headline)
             except Exception as e:
-                if isinstance(e, APIError) or isinstance(e, StorageException):
+                if isinstance(e, APIError):
                     print(e.args[0]["message"])
                     continue
             finally:

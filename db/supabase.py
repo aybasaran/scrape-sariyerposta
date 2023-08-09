@@ -6,9 +6,10 @@ from supabase import Client, create_client
 
 from config.config import Config
 from exceptions.db import CouldNotConnectDB
+from utils.types import NewsPaperHeadLine, LogType
+from utils.logger import Logger
 
-from utils.types import NewsPaperHeadLine
-from typing import List
+logger = Logger()
 
 
 class Supabase:
@@ -39,6 +40,11 @@ class Supabase:
         ).execute()
 
     def saveNews(self, post: dict) -> None:
+        # check if post already exists
+        if self.client.table("post").select("*").eq("slug", post["slug"]).execute().count:
+            logger.log(LogType.INFO, f"Post already exists: {post['slug']}")
+            return
+
         # Upload Main Image to Supabase Storage
         image = self.uploadImage(post["image"], folder="post")
 
@@ -52,10 +58,9 @@ class Supabase:
                 "title": post["title"],
                 "slug": post["slug"],
                 "description": post["description"],
-                "created_at": post["publish_date"],
+                "created_at": post["created_at"],
                 "image": image,
-                "category": post["subject"],
-                # python dict to json
+                "category": post["category"],
                 "content": post["content"],
             }
         ).execute()

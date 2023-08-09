@@ -21,7 +21,12 @@ def removeMainPagesFromSitemap(sitemapUrlElemet: PageElement):
 
 
 def convertScrapedDatetimeTextToDatetime(scrapedDatetimeText: str):
-    return datetime.strptime(scrapedDatetimeText, "%d.%m.%Y - %H:%M").strftime("%d.%m.%Y %H:%M:%S")
+    # remove spaces from scrapedDatetimeText
+    scrapedDatetimeText = scrapedDatetimeText.replace(" ", "")
+    # replace - with space
+    scrapedDatetimeText = scrapedDatetimeText.replace("-", " ")
+
+    return datetime.strptime(scrapedDatetimeText, "%d.%m.%Y %H:%M").isoformat()
 
 
 def writeUrlsToFile(urls: list[str], fileName: str):

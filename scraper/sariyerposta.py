@@ -1,5 +1,4 @@
-import os
-import time
+from typing import List
 
 from postgrest.exceptions import APIError
 from slugify import slugify
@@ -13,7 +12,7 @@ from utils.helpers import (
 )
 from utils.logger import Logger
 from utils.scraper import HtmlScraper, XMLScraper
-from utils.types import LogType
+from utils.types import LogType, Post
 
 logger = Logger()
 
@@ -25,19 +24,24 @@ class SariyerPostaScraper:
     def __init__(self, supabase: Supabase) -> None:
         self.supabase = supabase
 
-    def getPostDetails(self, url: str):
+    def getPostDetails(self, url: str) -> Post or None:
         if not url.startswith(self.domain):
             url = f"{self.domain}/{url}"
 
         doc = HtmlScraper(url).scrape()
-
-        postHeader = doc.find("div", {"class": "post-header"})
-        postTitle = postHeader.find("h1").text
-        postDescription = postHeader.find("h2").text
-        postCategory = postHeader.find("div", {"class": "meta-category"}).findAll("a")[1].attrs["href"].replace("/", "")
-        postPublishDate = postHeader.findAll("div", {"class": "box"})[0].findAll("span")[0].text
-        postBodyElement = doc.find("div", {"class": "article-text"})
-        postImage = doc.find("div", {"class": "news-section"}).findAll("img")[0].attrs["src"]
+        try:
+            postHeader = doc.find("div", {"class": "post-header"})
+            postTitle = postHeader.find("h1").text.strip()
+            postDescription = postHeader.find("h2").text.strip()
+            postCategory = (
+                postHeader.find("div", {"class": "meta-category"}).findAll("a")[1].attrs["href"].replace("/", "")
+            )
+            postPublishDate = postHeader.findAll("div", {"class": "box"})[0].findAll("span")[0].text.strip()
+            postBodyElement = doc.find("div", {"class": "article-text"})
+            postImage = doc.find("div", {"class": "news-section"}).findAll("img")[0].attrs["src"]
+        except Exception as e:
+            logger.log(LogType.ERROR, f"Error while scraping post: {url}")
+            return None
 
         postContent = []
 
@@ -62,11 +66,11 @@ class SariyerPostaScraper:
             "content": postContent,
         }
 
-    def getMontlySitemap(self):
+    def getMontlySitemap(self) -> List[str]:
         doc = XMLScraper(f"{self.domain}/sitemap.xml").scrape()
         return [loc.text for loc in doc.findAll("loc")[1:]]
 
-    def getMonthlyPosts(self):
+    def getMonthlyPosts(self) -> List[str]:
         postUrls = []
         monthlySitemapList = self.getMontlySitemap()
 
@@ -95,11 +99,11 @@ class SariyerPostaScraper:
         if not url.startswith(self.domain):
             url = f"{self.domain}/{url}"
 
-        post = self.getNewsDetails(url)
+        post = self.getPostDetails(url)
         self.supabase.saveNews(post)
         print(f"News {post['title']} saved to database.")
 
-    def startScraping(self):
+    def startScraping(self) -> None:
         logger.log(LogType.WARNING, "Scraping started...")
         postUrls = self.getMonthlyPosts()
 
@@ -107,16 +111,10 @@ class SariyerPostaScraper:
             try:
                 logger.log(LogType.INFO, f"Scraping {url}...")
                 post = self.getPostDetails(url)
-                self.supabase.saveNews(post)
-                logger.log(LogType.SUCCESS, f"Post {post['title']} saved to database.")
+                if post:
+                    self.supabase.saveNews(post)
+                    logger.log(LogType.SUCCESS, f"Post {post['title']} saved to database.")
+                else:
+                    logger.log(LogType.ERROR, f"Post {url} couldn't be saved to database.")
             except Exception as e:
-                if isinstance(e, APIError):
-                    if e.args[0].error == "Duplicate":
-                        logger.log(LogType.WARNING, "Post already exists in database.")
-                        continue
-
-                logger.log(LogType.ERROR, f"Process stopped because of {e}")
-                os._exit(1)
-            finally:
-                logger.log(LogType.WARNING, "Process will continue in 1 seconds...")
-                time.sleep(1)
+                continue

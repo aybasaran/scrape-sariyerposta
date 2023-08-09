@@ -40,12 +40,12 @@ class Supabase:
 
     def saveNews(self, news: dict) -> None:
         # Upload Main Image to Supabase Storage
-        image = self.uploadImage(news["image"], folder="images")
+        image = self.uploadImage(news["image"], folder="news")
 
         # Upload Content images to Supabase Storage
         for content in news["content"]:
             if content["type"] == "image":
-                content["body"] = self.uploadImage(content["body"], folder="images")
+                content["body"] = self.uploadImage(content["body"], folder="news")
 
         self.client.table("news").insert(
             {
